@@ -4,6 +4,13 @@
 <meta charset="UTF-8">
 <title>LOGOS // Terminal</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#050805">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
 <style>
@@ -417,10 +424,12 @@ const CURRENT_PLANE = "TORIL";
 //   "SIGIL"    — Planescape crossroads
 
 /* ============================================================
-   RESET SWITCH — load ?reset in the URL to wipe uptime + boot flag
+   RESET SWITCH — load ?reset in the URL to force-wipe uptime + boot flag
+   (normally not needed — closing and relaunching the app does this
+   automatically now that uptime lives in sessionStorage)
    ============================================================ */
 if (window.location.search.includes('reset')) {
-  localStorage.removeItem('logos_uptime_start');
+  sessionStorage.removeItem('logos_uptime_start');
   sessionStorage.removeItem('logos_booted');
 }
 
@@ -496,12 +505,14 @@ setInterval(updateClock, 1000);
 updateClock();
 
 /* ============================================================
-   UPTIME — persists across refreshes via localStorage
+   UPTIME — persists across page reloads within the same session
+   (via sessionStorage), but resets when the app is actually
+   closed and relaunched, since that starts a fresh session
    ============================================================ */
-let startTime = parseInt(localStorage.getItem('logos_uptime_start'), 10);
+let startTime = parseInt(sessionStorage.getItem('logos_uptime_start'), 10);
 if (!startTime || isNaN(startTime)){
   startTime = Date.now();
-  localStorage.setItem('logos_uptime_start', String(startTime));
+  sessionStorage.setItem('logos_uptime_start', String(startTime));
 }
 function updateUptime(){
   const diff = Math.floor((Date.now() - startTime) / 1000);
@@ -689,6 +700,17 @@ setInterval(updatePrices, 60000);
     requestAnimationFrame(frame);
   });
 })();
+
+/* ============================================================
+   PWA — register service worker so the page is installable
+   ============================================================ */
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('service-worker.js').catch(() => {
+      // fails silently on file:// or unsupported browsers — page still works fine
+    });
+  });
+}
 </script>
 
 </body>
